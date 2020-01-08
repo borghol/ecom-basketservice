@@ -4,6 +4,25 @@ server:
 dynamo:
   endpoint: http://localhost:8000
 
+# cloud.aws.credentials.accessKey: randomShit
+# cloud.aws.credentials.secretKey: evenMoreRandomShit
+# cloud.aws.credentials.useDefaultAwsCredentialsChain: true
+# cloud:
+#   aws:
+#     credentials:
+#       access-key: randomShit
+
+# aws.accessKeyId: randomShit
+
+# cloud.aws.credentials.instanceProfile: true
+# aws.accessKeyId: randomShit
+# aws.secretKeyId: evenMoreRandomShit
+cloud.aws.region.auto: false
+cloud:
+  aws:
+    region:
+      static: "eu-west-1"
+cloud.aws.stack.auto: false
 
 spring:
   main:

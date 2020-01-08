@@ -34,6 +34,8 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.5.29')
 	implementation 'software.amazon.awssdk:dynamodb'
 
+	// https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-aws-autoconfigure
+	compile group: 'org.springframework.cloud', name: 'spring-cloud-aws-autoconfigure', version: '2.2.1.RELEASE'
 }
 
 test {

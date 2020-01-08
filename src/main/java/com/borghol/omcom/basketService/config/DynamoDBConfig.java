@@ -18,13 +18,13 @@ public class DynamoDBConfig {
     
     @Value("${dynamo.endpoint}")
     private String amazonDynamoDBEndpoint;
+    
 
     @Bean
     public DynamoDbAsyncClient dynamoDBAsyncClient() {
         return DynamoDbAsyncClient.builder()
-                .region(Region.EU_WEST_1)
                 .endpointOverride(URI.create(amazonDynamoDBEndpoint))
-                .credentialsProvider(DefaultCredentialsProvider.builder().build())
+                .region(Region.EU_WEST_1)
                 .build();
     }
 }
