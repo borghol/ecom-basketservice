@@ -26,6 +26,8 @@ import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.GlobalSecondaryIndex;
 import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
 import software.amazon.awssdk.services.dynamodb.model.KeyType;
+import software.amazon.awssdk.services.dynamodb.model.Projection;
+import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
@@ -46,19 +48,6 @@ public class UserBasketRepository {
         final DescribeTableRequest describeTableRequest = DescribeTableRequest.builder().tableName("UserBasket").build();
         final CompletableFuture<DescribeTableResponse> response = dynamoDBAsyncClient.describeTable(describeTableRequest);
         Mono.fromFuture(response)
-            .map(x -> {
-                final HashMap<String,AttributeValue> item_values =
-                    new HashMap<String,AttributeValue>();
-                item_values.put("userId", AttributeValue.builder().s("borghol").build());
-                item_values.put("itemId", AttributeValue.builder().s("someItem").build());
-                item_values.put("count", AttributeValue.builder().n("1").build());
-                final PutItemRequest request = PutItemRequest.builder()
-		            .tableName("UserBasket")
-		            .item(item_values)
-                    .build();
-
-                return Mono.fromFuture(dynamoDBAsyncClient.putItem(request));
-            })
             .onErrorResume((e) -> {
                 if (e instanceof ResourceNotFoundException) {
                     final List<AttributeDefinition> attributeDefinitions = new ArrayList<>();
@@ -82,11 +71,13 @@ public class UserBasketRepository {
                     final GlobalSecondaryIndex gsi1 = GlobalSecondaryIndex.builder()
                                 .indexName("ItemId_userId")
                                 .keySchema(gsi1Keys)
+                                .projection(Projection.builder().projectionType(ProjectionType.KEYS_ONLY).build())
                                 .provisionedThroughput(ProvisionedThroughput.builder().writeCapacityUnits(5L).readCapacityUnits(5L).build()).build();
                     
                     final GlobalSecondaryIndex gsi2 = GlobalSecondaryIndex.builder()
                                 .indexName("UserId_dateUpdated")
                                 .keySchema(gsi2Keys)
+                                .projection(Projection.builder().projectionType(ProjectionType.KEYS_ONLY).build())
                                 .provisionedThroughput(ProvisionedThroughput.builder().writeCapacityUnits(5L).readCapacityUnits(5L).build()).build();
 
                     final CreateTableRequest createTableRequest = CreateTableRequest.builder()
@@ -110,7 +101,7 @@ public class UserBasketRepository {
         values.put("userId", AttributeValue.builder().s(item.getUserId()).build());
         values.put("itemId", AttributeValue.builder().s(item.getItemId()).build());
         values.put("location", AttributeValue.builder().s(item.getLocation().getItemLocation()).build());
-        values.put("count", AttributeValue.builder().n(String.valueOf(item.getCount())).build());
+        values.put("count", AttributeValue.builder().n(item.getCount().toString()).build());
         values.put("userType", AttributeValue.builder().s(item.getUserType().getUserType()).build());
 
         if (item.getMeasurement() != null) {
@@ -126,8 +117,33 @@ public class UserBasketRepository {
         return Mono.fromFuture(dynamoDBAsyncClient.putItem(request));
     }
 
-    public Mono<QueryResponse> findByUserId(String userId) {
-        QueryRequest request = QueryRequest.builder().tableName("UserBasket").keyConditionExpression("userId = :" + userId).build();
-        return Mono.fromFuture(dynamoDBAsyncClient.query(request));
+    public Mono<QueryResponse> findAllByUserId(String userId) {
+        return findAllByUserId(userId, null);
     }
+
+    public Mono<QueryResponse> findAllByUserId(String userId, String keyStart) {
+        Map<String, AttributeValue> map = new HashMap<>();
+        map.put(":userId", AttributeValue.builder().s(userId).build());
+        
+        QueryRequest.Builder request = QueryRequest.builder()
+                    .tableName("UserBasket")
+                    .keyConditionExpression("userId = :userId")
+                    .expressionAttributeValues(map);
+
+
+        if (keyStart != null) {
+            Map<String, AttributeValue> x = new HashMap<>();
+            x.put("userId", AttributeValue.builder().s(keyStart).build());
+            request.exclusiveStartKey(x);
+        }
+
+        return Mono.fromFuture(dynamoDBAsyncClient.query(request.build()));
+    }
+
+    public Mono<DescribeTableResponse> getTable() {
+        DescribeTableRequest describeTableRequest = DescribeTableRequest.builder()
+                .tableName("UserBasket").build();
+        return Mono.fromFuture(dynamoDBAsyncClient.describeTable(describeTableRequest));
+    }
+    
 }
