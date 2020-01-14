@@ -14,18 +14,15 @@ The Basket Service provides an API for creating, revising, and removing items fr
 - The basket should be limited to store a specific measurement size
 - Basket is cleared when the user generates an order
 - Items stay in the basket for 30 days, then they are moved to the wishlist
-- A visitor logging in will merge both baskets & wishlists
+- A visitor logging in will merge baskets
 
 ## Service API
 | Commands                  | Queries                 | Events
 | -                         | -                       | -
-| `addtoCart()`             | `getCart()`             | Cart Item Added
-| `editItemCount()`         | `getCartCount()`        | Cart Item Removed
-| `removeFromCart()`        | `getWishlist()`         | Cart Item Edited
-| `clearCart()`             | `getWishlistCount()`    | Wishlist Item Added
-| `addToWishlist()`         |                         | Wishlist Item Removed
-| `removeFromWishlist()`    |                         | Wishlist Item Moved to Cart
-| `moveItemToCart()`        |
+| `saveToBasket()`          | `getCart()`             | Cart Item Added
+| `removeFromBasket()`      | `getCartCount()`        | Cart Item Removed
+| `clearCart()`             |                         | Cart Item Edited
+|                           |                         | Cart Cleared
 
 ## Non-Functional Requirements
 - The system should be able to store 10M baskets.
@@ -41,6 +38,9 @@ The Basket Service provides an API for creating, revising, and removing items fr
 - items_added_to_basket
 - checked_out_baskets
 - baskets_cleared
+- users_logged_in
+- items_removed_from_basket
+- items_moved_to_wishlist
 
 ### Health Check Endpoint
     /actuator/health
@@ -52,37 +52,46 @@ The Basket Service provides an API for creating, revising, and removing items fr
 
 ![System Architecture](/docs/system-architecture.png)
 
-## Entity Diagram
-
-![Entity Data Diagram](docs\entity-data-diagram.png)
-
 ## Database Queries
 
-- `findAllCartByUserId()`
-- `findAllWishlistByUserId()`
-- `getCartCountByUserId()`
-- `getWishlistCountByUserId()`
-- `putItemInCart()`
-- `putItemInWishlist()`
-- `updateItemByUserIdAndItemId()`
-- `clearCart()`
-- `clearWishlist()`
-- `removeItemFromCart()`
-- `removeItemFromWishlist()`
+- `findItemsByUserId()`
+- `findItemByUserIdAndItemId()`
+- `saveItem()`
+- `deleteItem()`
 
 ## Primary Database Schema
 
-### Primary Schema
+### Partition Key
+- `UserPrefix_UserId`
+    - **UserPrefix**: Identifies type of User. (OMNI / VISI)
+    - **UserId**: Account User ID or user session ID is not logged in.
 
-| Partiton Key | Sort Key        | Attributes | | |
-| - | - | - | - | -
-| UserId       | Location_ItemId | Location | Item Details | User Details
+### Sort Key
+- `ItemId`
+
+### Attributes
+- `Quantity`
+- `QuantityUnits`
+- `UserId`
+- `UserType`
+- `CreatedBy`
+- `CreatedAt`
+- `UpdatedBy`
+- `UpdatedAt`
+- `IPAddress`
+- `isDeleted`
+
+
+| Partiton Key | Sort Key        | Attributes | | | | | | | | |
+| - | - | - | - | - | - | - | - | - | - | -
+| UserPrefix_UserId | ItemId | Quantity | QuantityUnits | UserId | CreatedBy | CreatedAt | UpdatedBy | UpdatedAt | IPAddress | isDeleted
 
 
 ## Dependencies
 
 ### Invokes
-`None`
+- **Wishlist Service**
+    - `saveItem()`
 
 ### Subscribes
 - **Catalog Service**
